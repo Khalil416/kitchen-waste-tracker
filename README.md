@@ -1,130 +1,303 @@
-# Kitchen Waste Tracker
+# 🍳 Kitchen Waste Tracker
 
-A desktop app for restaurants and commercial kitchens to track inventory, monitor expiry dates, and log food waste — built with [Flet](https://flet.dev/) (Python) and SQLite.
+A full-stack desktop application for tracking kitchen inventory, monitoring food expiry dates, recording waste, and analyzing financial loss — built with **Python**, **Flet**, **FastAPI**, and **SQLite**.
 
-I built this as a university project to explore how a small, focused tool can help real kitchens cut down on food waste by making expiry dates visible and turning waste into structured data instead of guesswork.
-
-## What the app does
-
-The app is built around three roles, and each one sees a different version of the interface:
-
-- **Kitchen Staff** (`chef`) — view inventory, see what's expiring, record waste against items they're using.
-- **Inventory Manager** (`inventory_staff`) — everything the kitchen staff sees, plus the expiry monitor and full waste log history.
-- **General Manager** (`manager`) — full access, including reports with charts, category management, user management, and the only role allowed to register new users or record waste on behalf of someone else.
-
-Pages are wired through Flet's routing in `main.py`, with route guards that redirect unauthorized roles back to the dashboard.
-
-## Features
-
-**Dashboard** — At-a-glance summary cards (total items, items near expiry, expired items, weekly waste cost), a category-by-category waste distribution chart, a 7-day waste trend line chart, and shortcuts to expiring items and recent waste logs.
-
-**Inventory** — Add, edit, and delete food items with quantity, unit, storage location, expiry date, batch number, and alert threshold. Filter by category, status (Fresh / Expiring Soon / Expired), and storage location. Click any row to open a detail page with stock adjustment dialog and waste history for that item.
-
-**Expiry Monitor** — Tabs for "Near Expiry," "Expired," and "All Items," plus an adjustable threshold slider (1–14 days) so you can tune how aggressive the alerts are.
-
-**Waste Logs** — Searchable, paginated audit trail of every waste event with date filters, reason badges, and per-event cost estimates. Recording waste also decrements inventory in the same transaction, so stock counts stay honest.
-
-**Reports** *(manager only)* — Daily / weekly / monthly views of waste cost trends, breakdown by reason (expired, spoiled, prep waste, overproduction, damaged), top 5 most-wasted items, and one-click CSV export to a local `reports/` folder.
-
-**Categories** *(manager only)* — Manage the food category list with descriptions and default shelf life. Categories drive the dropdowns in the inventory form.
-
-**Users** *(manager only)* — Grid view of all accounts with edit, deactivate, and delete actions. Includes a "head manager" account (`manager`) that can't be modified or deleted by anyone — even other managers — to prevent accidental lockout.
-
-**Account** — Each user can view their own profile and credentials.
-
-**Light + dark mode** — Toggle on the login screen.
-
-## Tech stack
-
-- **Flet** for the UI (single Python codebase, native desktop window via Flutter under the hood)
-- **flet_charts** for the line charts on the dashboard and reports page
-- **SQLite** for local storage — two databases:
-  - `inventory.db` — items, categories, waste logs
-  - `reg.db` — user accounts and authentication
-- **Python 3.12+**
-
-No external services, no cloud, no API keys. Everything runs locally.
-
-## Project structure
-
-```
-kitchen-waste-tracker/
-├── main.py                   # Entry point, routing, auth guards
-├── views/
-│   ├── login.py              # Login screen + auth DB seeding
-│   ├── registration.py       # Manager-only user creation
-│   ├── dashboard.py          # Summary cards + charts + tables
-│   ├── inventory.py          # Inventory list with filters
-│   ├── add_item.py           # Add/edit item form (shared)
-│   ├── item_detail.py        # Per-item view with stock adjust
-│   ├── expiry_monitor.py     # Tabs + threshold slider
-│   ├── waste_new.py          # Record waste form
-│   ├── waste_logs.py         # Audit trail with pagination
-│   ├── reports.py            # Charts + CSV export
-│   ├── categories.py         # Manage food categories
-│   ├── users_staff.py        # User management grid
-│   └── account.py            # Personal account page
-├── tools/
-│   └── check_users.py        # CLI helper to inspect reg.db
-├── assets/                   # Logo and icons
-├── reports/                  # Generated CSV exports
-├── inventory.db              # Auto-created on first run
-├── reg.db                    # Auto-created on first run
-└── README.md
-```
-
-## Getting started
-
-You need Python 3.12 or newer.
-
-```bash
-# 1. Clone the repo
-git clone <your-repo-url>
-cd kitchen-waste-tracker
-
-# 2. (Recommended) create a virtual environment
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
-
-# 3. Install dependencies
-pip install flet flet-charts
-
-# 4. Run
-python main.py
-```
-
-The first time you launch, both databases are created automatically and a few seed accounts are inserted for testing.
-
-## Default login credentials
-
-These accounts are seeded automatically on first run. **Change them in production.**
-
-| Username     | Password | Role             |
-|--------------|----------|------------------|
-| `manager`    | `1234`   | General Manager  |
-| `manager2`   | `1234`   | General Manager  |
-| `inventory1` | `1234`   | Inventory Manager|
-| `chef1`      | `1234`   | Kitchen Staff    |
-
-The `manager` account is the protected "head manager" — it can't be deleted, deactivated, or have its role changed, even by other managers.
-
-## Notes on the data model
-
-The schema migrates itself. Each view that touches a table runs `CREATE TABLE IF NOT EXISTS` and `ALTER TABLE ADD COLUMN` on startup, so existing databases pick up new columns without a manual migration step. This keeps the project simple to run on a fresh machine but also means the code lives close to the schema — read the `_init_*_db()` helpers at the top of each view file if you want the canonical column list.
-
-Waste recording is transactional: inserting a waste log and decrementing the inventory quantity happen in the same `sqlite3` connection, with a rollback if either fails. That was the most important thing to get right — losing track of how much is actually on the shelf would defeat the whole point of the app.
-
-## Things that aren't built yet
-
-Being honest about scope: the password input field on login doesn't hash anything, there's no "forgot password" flow, no remote backups, no multi-tenancy. This is a coursework project and a portfolio piece, not production software. If you want to extend it, the cleanest next steps would be password hashing (`bcrypt`), a proper migration tool (Alembic), and switching the routing guards to a decorator pattern.
-
-## License
-
-MIT — do whatever you want with it, just don't blame me if it eats your inventory.
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)
+![Flet](https://img.shields.io/badge/Flet-Desktop_UI-02569B?logo=flutter&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-3-003B57?logo=sqlite&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
-Built by Khalil Allahverdiyev as part of the BBA in Computer Information Systems program at ASOIU.
+## 📖 About
+
+Kitchen Waste Tracker helps kitchen managers monitor inventory levels, track expiration dates, record food waste with cost estimates, and generate analytics reports. The application follows a **client-server architecture** where a Flet desktop frontend communicates with a FastAPI backend through RESTful HTTP endpoints.
+
+This project was developed as a coursework for the **Software Engineering** course at Azerbaijan State Oil and Industry University (ASOIU).
+
+---
+
+## ✨ Features
+
+### Inventory Management
+- Full CRUD operations for inventory items (add, view, edit, delete)
+- Auto-generated SKU codes (SKU-00001, SKU-00002, ...)
+- Category-based organization (Dairy, Meat, Vegetable, Fruit, Dry Goods, Bakery)
+- Storage location tracking (Fridge, Freezer, Pantry, Cold Room, Shelf, Counter)
+- Search and multi-filter support (by name, category, status, storage)
+- Pagination (6 items per page)
+
+### Expiry Monitoring
+- Real-time status calculation: **Fresh**, **Expiring Soon**, **Expired**
+- Configurable alert threshold (1–14 days via slider)
+- Dedicated Expiry Monitor page with tabbed view (Near Expiry / Expired / All)
+
+### Waste Recording
+- Transactional waste logging — inventory quantity is automatically reduced
+- Predefined waste reasons: Expired, Spoiled, Prep Waste, Overproduction, Damaged, Other
+- Cost estimation per waste entry
+- Stock validation prevents wasting more than available quantity
+
+### Analytics & Reports
+- **Dashboard** — 4 summary cards (total items, near expiry, expired, weekly waste cost), waste distribution bar chart, daily trend line chart, expiring items table, recent waste logs
+- **Reports page** — Waste Cost Trend chart, Waste by Reason breakdown, Top Wasted Items by Cost
+- Period filtering: Daily (7 days), Weekly (4 weeks), Monthly (12 months)
+- CSV export for waste reports
+
+### User Management
+- Role-based access control with 3 roles:
+  - **Chef (Kitchen Staff)** — Dashboard, Inventory
+  - **Inventory Manager** — above + Expiry Monitor, Waste Logs
+  - **General Manager** — full access including Reports, Categories, Users, waste recording
+- User CRUD (create, edit, activate/deactivate, delete)
+- Manager hierarchy protection (head manager account cannot be modified)
+- Session-based authentication
+
+### UI/UX
+- Light / Dark theme toggle on every page
+- Responsive sidebar navigation with role-based menu items
+- Snackbar notifications for success/error feedback
+- Confirmation dialogs for destructive actions
+- Pre-filled edit forms for seamless editing experience
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────┐          HTTP (REST)          ┌─────────────────────┐
+│                     │  ◄──── requests library ────► │                     │
+│   Flet Desktop UI   │         GET/POST/PUT/         │   FastAPI Backend   │
+│   (main.py)         │         PATCH/DELETE           │   (api.py)          │
+│                     │                                │                     │
+└─────────────────────┘                                └──────────┬──────────┘
+                                                                  │
+                                                           sqlite3 module
+                                                                  │
+                                                    ┌─────────────┴─────────────┐
+                                                    │                           │
+                                              ┌─────┴─────┐             ┌───────┴───────┐
+                                              │inventory.db│             │   reg.db      │
+                                              │            │             │               │
+                                              │• inventory │             │• users        │
+                                              │• waste_logs│             │               │
+                                              │• categories│             │               │
+                                              └────────────┘             └───────────────┘
+```
+
+---
+
+## 📁 Project Structure
+
+```
+ProjectWork/
+├── api.py                          # FastAPI app entry point
+├── main.py                         # Flet app entry point
+├── inventory.db                    # Inventory, waste logs, categories database
+├── reg.db                          # Users database
+├── seed_data.py                    # Sample data seeder (optional)
+│
+├── backend/
+│   ├── __init__.py
+│   ├── db.py                       # Database connection helpers & logging
+│   ├── common/
+│   │   └── helpers.py              # Shared business logic (SKU generation, status calc)
+│   ├── schemas/
+│   │   └── core.py                 # Pydantic models for request validation
+│   └── routers/
+│       ├── health.py               # Health check & root endpoints
+│       ├── auth.py                 # POST /auth/login
+│       ├── inventory.py            # CRUD for /inventory
+│       ├── waste.py                # CRUD for /waste-logs
+│       ├── users.py                # CRUD for /users
+│       ├── categories.py           # CRUD for /categories
+│       └── analytics.py            # Dashboard stats & report aggregations
+│
+├── views/
+│   ├── login.py                    # Login page + DB initialization & migration
+│   ├── dashboard.py                # Main dashboard with charts & summary cards
+│   ├── inventory.py                # Inventory list with filters & pagination
+│   ├── add_item.py                 # Add / Edit inventory item form
+│   ├── item_detail.py              # Single item detail with stock management
+│   ├── expiry_monitor.py           # Expiry tracking with threshold slider
+│   ├── waste_logs.py               # Waste audit trail with date filtering
+│   ├── waste_new.py                # Record new waste form
+│   ├── reports.py                  # Analytics charts & CSV export
+│   ├── categories.py               # Category management CRUD
+│   ├── users_staff.py              # User management grid
+│   ├── registration.py             # New user registration form
+│   └── account.py                  # User profile page (read-only)
+│
+├── tools/
+│   └── check_users.py              # CLI utility to inspect users table
+│
+├── reports/                        # Auto-created folder for CSV exports
+├── requirements.txt
+└── .gitignore
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Python 3.10 or higher
+- pip (Python package manager)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Khalil416/kitchen-waste-tracker.git
+   cd kitchen-waste-tracker
+   ```
+
+2. **Create a virtual environment** (recommended)
+   ```bash
+   python -m venv .venv
+
+   # Windows
+   .venv\Scripts\activate
+
+   # macOS / Linux
+   source .venv/bin/activate
+   ```
+
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Seed sample data** (optional — populates the database with demo items and waste logs)
+   ```bash
+   python seed_data.py
+   ```
+
+### Running the Application
+
+You need **two terminals** — one for the backend, one for the frontend:
+
+**Terminal 1 — Start the API server:**
+```bash
+uvicorn api:app --reload --port 8000
+```
+
+**Terminal 2 — Start the Flet desktop app:**
+```bash
+python main.py
+```
+
+### Default Login Credentials
+
+| Username         | Password | Role              |
+|------------------|----------|-------------------|
+| `manager`        | `1234`   | General Manager   |
+| `inventory1`     | `1234`   | Inventory Manager |
+| `chef1`          | `1234`   | Kitchen Staff     |
+
+### API Documentation
+
+Once the backend is running, interactive API docs are available at:
+
+- **Swagger UI:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **ReDoc:** [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer     | Technology             | Purpose                                    |
+|-----------|------------------------|--------------------------------------------|
+| Frontend  | Flet                   | Desktop UI framework (Python-based)        |
+| Backend   | FastAPI                | RESTful API server with auto-docs          |
+| Database  | SQLite3                | Lightweight embedded relational database   |
+| Charting  | flet_charts            | Line charts for dashboard trends           |
+| HTTP      | requests               | Frontend-to-backend communication          |
+| Validation| Pydantic               | Request body schema validation             |
+| Server    | Uvicorn                | ASGI server for FastAPI                    |
+
+---
+
+## 📡 API Endpoints
+
+### Authentication
+| Method | Endpoint           | Description        |
+|--------|--------------------|--------------------|
+| POST   | `/auth/login`      | User login         |
+
+### Inventory
+| Method | Endpoint               | Description                          |
+|--------|------------------------|--------------------------------------|
+| GET    | `/inventory`           | List items (with search & filters)   |
+| GET    | `/inventory/{id}`      | Get single item                      |
+| POST   | `/inventory`           | Create new item                      |
+| PUT    | `/inventory/{id}`      | Update item                          |
+| DELETE | `/inventory/{id}`      | Delete item                          |
+
+### Waste Logs
+| Method | Endpoint         | Description                              |
+|--------|------------------|------------------------------------------|
+| GET    | `/waste-logs`    | List waste logs (optional item_id filter) |
+| POST   | `/waste-logs`    | Record waste (transactional)             |
+
+### Users
+| Method | Endpoint                    | Description              |
+|--------|-----------------------------|--------------------------|
+| GET    | `/users`                    | List users (search/role) |
+| GET    | `/users/{id}`               | Get single user          |
+| POST   | `/users`                    | Create user              |
+| PUT    | `/users/{id}`               | Update user              |
+| PATCH  | `/users/{id}/active`        | Toggle active status     |
+| DELETE | `/users/{id}`               | Delete user              |
+
+### Categories
+| Method | Endpoint              | Description        |
+|--------|-----------------------|--------------------|
+| GET    | `/categories`         | List categories    |
+| POST   | `/categories`         | Create category    |
+| PUT    | `/categories/{id}`    | Update category    |
+| DELETE | `/categories/{id}`    | Delete category    |
+
+### Analytics
+| Method | Endpoint                  | Description                        |
+|--------|---------------------------|------------------------------------|
+| GET    | `/dashboard/stats`        | Summary cards data                 |
+| GET    | `/dashboard/waste-summary`| Waste distribution by reason       |
+| GET    | `/reports/summary`        | Waste cost trend (period filter)   |
+| GET    | `/reports/by-reason`      | Top waste reasons (period filter)  |
+
+### System
+| Method | Endpoint    | Description            |
+|--------|-------------|------------------------|
+| GET    | `/`         | API welcome message    |
+| GET    | `/health`   | Health check           |
+
+---
+
+## 🔒 Security Notes
+
+This is a **university coursework project** and includes the following simplifications:
+
+- Passwords are stored in **plain text** (production would use bcrypt/argon2)
+- No JWT or token-based authentication (session-based via Flet's `page.session`)
+- No HTTPS (runs on localhost only)
+- Role-based access is enforced on the **frontend routing layer** — the API itself does not verify roles per request
+- SQLite is used for simplicity — production would use PostgreSQL or similar
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+## 👤 Author
+
+**Khalil Allahverdiyev**
+
+- GitHub: [@Khalil416](https://github.com/Khalil416)
+- LinkedIn: [khalil-allahverdiyev](https://linkedin.com/in/khalil-allahverdiyev)
+- Email: xelil.allahverdiyev06@gmail.com
