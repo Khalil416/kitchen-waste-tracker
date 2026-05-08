@@ -288,11 +288,6 @@ This is a **university coursework project** and includes the following simplific
 
 ---
 
-## 📄 License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
----
 
 ## 👤 Author
 
