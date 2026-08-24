@@ -67,3 +67,7 @@ coverage.xml
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local databases (contain user data — never track)
+inventory.db
+reg.db
