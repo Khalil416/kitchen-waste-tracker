@@ -1,0 +1,6 @@
+fastapi==0.135.2
+uvicorn[standard]==0.42.0
+pydantic==2.12.5
+flet==0.84.0
+flet-charts==0.84.0
+requests==2.32.2

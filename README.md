@@ -96,7 +96,6 @@ ProjectWork/
 ├── main.py                         # Flet app entry point
 ├── inventory.db                    # Inventory, waste logs, categories database
 ├── reg.db                          # Users database
-├── seed_data.py                    # Sample data seeder (optional)
 │
 ├── backend/
 │   ├── __init__.py
@@ -168,11 +167,6 @@ ProjectWork/
 3. **Install dependencies**
    ```bash
    pip install -r requirements.txt
-   ```
-
-4. **Seed sample data** (optional — populates the database with demo items and waste logs)
-   ```bash
-   python seed_data.py
    ```
 
 ### Running the Application
