@@ -86,16 +86,16 @@ This project was developed as a coursework for the **Software Engineering** cour
                                               └────────────┘             └───────────────┘
 ```
 
+Both database files are created automatically on first launch and are **not** tracked in this repository.
+
 ---
 
 ## 📁 Project Structure
 
 ```
-ProjectWork/
+kitchen-waste-tracker/
 ├── api.py                          # FastAPI app entry point
 ├── main.py                         # Flet app entry point
-├── inventory.db                    # Inventory, waste logs, categories database
-├── reg.db                          # Users database
 │
 ├── backend/
 │   ├── __init__.py
@@ -129,7 +129,8 @@ ProjectWork/
 │   └── account.py                  # User profile page (read-only)
 │
 ├── tools/
-│   └── check_users.py              # CLI utility to inspect users table
+│   ├── check_users.py              # CLI utility to inspect users table
+│   └── migrate_passwords.py        # One-off migration: plaintext → PBKDF2 hashes
 │
 ├── reports/                        # Auto-created folder for CSV exports
 ├── requirements.txt
@@ -171,25 +172,29 @@ ProjectWork/
 
 ### Running the Application
 
-You need **two terminals** — one for the backend, one for the frontend:
+You need **two terminals**. On a fresh clone, start the desktop app **first** — it creates the SQLite databases and tables on launch. Starting the API against a non-existent database will return `no such table: users`.
 
-**Terminal 1 — Start the API server:**
-```bash
-uvicorn api:app --reload --port 8000
-```
-
-**Terminal 2 — Start the Flet desktop app:**
+**Terminal 1 — Start the Flet desktop app (initializes the database):**
 ```bash
 python main.py
 ```
 
-### Default Login Credentials
+**Terminal 2 — Start the API server:**
+```bash
+uvicorn api:app --reload --port 8000
+```
 
-| Username         | Password | Role              |
-|------------------|----------|-------------------|
-| `manager`        | `1234`   | General Manager   |
-| `inventory1`     | `1234`   | Inventory Manager |
-| `chef1`          | `1234`   | Kitchen Staff     |
+> **First run:** the database files are not tracked in this repository, so a fresh clone starts empty. Create your first account through the registration screen on launch.
+
+### Demo Accounts
+
+These accounts exist only if you have an existing local database from a previous run. On a fresh clone, register a new account instead.
+
+| Username         | Role              |
+|------------------|-------------------|
+| `manager`        | General Manager   |
+| `inventory1`     | Inventory Manager |
+| `chef1`          | Kitchen Staff     |
 
 ### API Documentation
 
@@ -210,6 +215,7 @@ Once the backend is running, interactive API docs are available at:
 | Charting  | flet_charts            | Line charts for dashboard trends           |
 | HTTP      | requests               | Frontend-to-backend communication          |
 | Validation| Pydantic               | Request body schema validation             |
+| Security  | hashlib (PBKDF2)       | Password hashing with per-user salts       |
 | Server    | Uvicorn                | ASGI server for FastAPI                    |
 
 ---
@@ -246,6 +252,8 @@ Once the backend is running, interactive API docs are available at:
 | PATCH  | `/users/{id}/active`        | Toggle active status     |
 | DELETE | `/users/{id}`               | Delete user              |
 
+Password fields are never included in user responses.
+
 ### Categories
 | Method | Endpoint              | Description        |
 |--------|-----------------------|--------------------|
@@ -272,16 +280,21 @@ Once the backend is running, interactive API docs are available at:
 
 ## 🔒 Security Notes
 
-This is a **university coursework project** and includes the following simplifications:
+This is a **university coursework project**. Security posture:
 
-- Passwords are stored in **plain text** (production would use bcrypt/argon2)
-- No JWT or token-based authentication (session-based via Flet's `page.session`)
+**Implemented:**
+- Passwords are hashed at rest using **PBKDF2-HMAC-SHA256** (200,000 iterations) with a unique per-user salt — no plaintext credentials are stored
+- The `GET /users` and `GET /users/{id}` endpoints never return password data
+- Login is verified by re-deriving the hash from the submitted password, not by comparison of stored secrets
+
+**Known simplifications (not production-ready):**
+- No JWT or token-based authentication (session-based via Flet's `page.session`, no expiry)
 - No HTTPS (runs on localhost only)
-- Role-based access is enforced on the **frontend routing layer** — the API itself does not verify roles per request
+- Role-based access is enforced on the **frontend routing layer** — the API does not verify roles per request
 - SQLite is used for simplicity — production would use PostgreSQL or similar
+- No automated test suite
 
 ---
-
 
 ## 👤 Author
 
