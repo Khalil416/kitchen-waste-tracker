@@ -2,6 +2,7 @@ import sqlite3
 
 from fastapi import APIRouter, HTTPException, Query
 
+from backend.common.security import hash_password
 from backend.db import REG_DB, connect, log, rows_to_dicts
 from backend.schemas.core import UserCreate, UserUpdate
 
@@ -18,14 +19,14 @@ def _table_columns() -> set:
 
 
 def _base_select_clause() -> str:
+    # Deliberately never selects "password" — this endpoint's rows are
+    # returned to API callers and must never carry the password hash.
     cols = _table_columns()
     select_cols = ["id", "username", "email", "role"]
     if "is_active" in cols:
         select_cols.append("is_active")
     if "created_at" in cols:
         select_cols.append("created_at")
-    if "password" in cols:
-        select_cols.append("password")
     return ", ".join(select_cols)
 
 
@@ -72,7 +73,7 @@ def get_users(search: str = Query(default=""), role: str = Query(default="")):
 @router.post("/users")
 def create_user(user: UserCreate):
     try:
-        log("POST /users", user.model_dump())
+        log("POST /users", {**user.model_dump(), "password": "***"})
         conn = connect(REG_DB)
         cur = conn.cursor()
 
@@ -88,7 +89,7 @@ def create_user(user: UserCreate):
 
         cur.execute(
             "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
-            (user.username, user.email, user.password, user.role),
+            (user.username, user.email, hash_password(user.password), user.role),
         )
         conn.commit()
         user_id = cur.lastrowid
@@ -120,7 +121,7 @@ def get_user(user_id: int):
 
 @router.put("/users/{user_id}")
 def update_user(user_id: int, user: UserUpdate):
-    log(f"PUT /users/{user_id}", user.model_dump())
+    log(f"PUT /users/{user_id}", {**user.model_dump(), "password": "***" if user.password is not None else None})
     cols = _table_columns()
     fields = []
     params = []
@@ -130,7 +131,7 @@ def update_user(user_id: int, user: UserUpdate):
         params.append(user.email)
     if user.password is not None:
         fields.append("password = ?")
-        params.append(user.password)
+        params.append(hash_password(user.password))
     if user.role is not None:
         fields.append("role = ?")
         params.append(user.role)

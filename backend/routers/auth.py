@@ -2,6 +2,7 @@ import sqlite3
 
 from fastapi import APIRouter
 
+from backend.common.security import verify_password
 from backend.db import REG_DB, connect, log
 from backend.schemas.core import LoginRequest
 
@@ -15,13 +16,13 @@ def auth_login(data: LoginRequest):
         conn = connect(REG_DB)
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, username, role, is_active FROM users WHERE (username = ? OR email = ?) AND password = ?",
-            (data.username, data.username, data.password),
+            "SELECT id, username, role, is_active, password FROM users WHERE (username = ? OR email = ?)",
+            (data.username, data.username),
         )
         row = cur.fetchone()
         conn.close()
 
-        if not row:
+        if not row or not verify_password(data.password, row[4]):
             return {"error": "Invalid credentials"}
         if row[3] in (0, "0"):
             return {"error": "Your account has been deactivated. Please contact your manager."}

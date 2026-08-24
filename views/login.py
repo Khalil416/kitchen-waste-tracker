@@ -1,6 +1,9 @@
 import flet as ft
 import sqlite3
 import requests
+
+from backend.common.security import hash_password
+
 API_URL = "http://127.0.0.1:8000"
 
 
@@ -87,12 +90,12 @@ def _init_auth_db():
         if not has_manager:
             cur.execute(
                 "INSERT INTO users (username, email, password, role, is_active) VALUES (?, ?, ?, ?, ?)",
-                ("manager", "manager@kitchen.local", "1234", "manager", 1),
+                ("manager", "manager@kitchen.local", hash_password("1234"), "manager", 1),
             )
     except Exception:
         pass
 
-    # Seed sample users for preview (all passwords = 1234)
+    # Seed sample users for preview (all passwords = 1234, stored hashed)
     sample_users = [
         ("chef1", "chef1@kitchen.local", "1234", "chef"),
         ("inventory1", "inventory1@kitchen.local", "1234", "inventory_staff"),
@@ -102,7 +105,7 @@ def _init_auth_db():
         try:
             cur.execute("SELECT id FROM users WHERE username=? LIMIT 1", (uname,))
             if cur.fetchone() is None:
-                cur.execute("INSERT INTO users (username, email, password, role, is_active) VALUES (?, ?, ?, ?, ?)", (uname, uemail, upwd, urole, 1))
+                cur.execute("INSERT INTO users (username, email, password, role, is_active) VALUES (?, ?, ?, ?, ?)", (uname, uemail, hash_password(upwd), urole, 1))
         except Exception:
             pass
     
